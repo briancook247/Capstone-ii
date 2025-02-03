@@ -6,21 +6,18 @@ Our Own Work
 License: MIT
 """
 
-from pydantic import BaseModel
-from typing import List
+# app/models/conversation.py
 
-class Message(BaseModel):
-    """
-    Represents a single message within a conversation.
-    """
-    role: str  # 'user' or 'assistant'
-    content: str
+from sqlalchemy import Column, ForeignKey, DateTime
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.sql import func
+import uuid
+from app.database import Base  # Ensure you have a Base declarative imported
 
-class ConversationInDB(BaseModel):
-    """
-    Represents a conversation session stored in the database.
-    """
-    id: int
-    document_id: int
-    user_email: str
-    messages: List[Message]
+class Conversation(Base):
+    __tablename__ = "conversations"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

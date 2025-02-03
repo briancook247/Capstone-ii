@@ -6,20 +6,23 @@ Our Own Work
 License: MIT
 """
 
-from fastapi import Header, HTTPException, status
-import jwt
-from .config import settings
+from fastapi import Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from app.database import SessionLocal
+from app.utils.auth import get_current_user_from_token  # auth helper
 
-def verify_token(authorization: str = Header(...)):
-    """
-    Dependency to verify the Bearer JWT token from the Authorization header.
-    Raises HTTP 401 if token is missing or invalid.
-    """
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid auth header")
-    token = authorization.split(" ")[1]
+def get_db():
+    db = SessionLocal()
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token verification failed")
-    return payload
+        yield db
+    finally:
+        db.close()
+
+def get_current_user():
+    # This function should extract and verify the user from the request (e.g., via a JWT token)
+    # and return a dict containing at least the user's UUID under the key "id".
+    # This is temporary and will be replaced by a proper authentication mechanism in a future section.
+    user = get_current_user_from_token()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    return user

@@ -4,25 +4,39 @@
  * Professor: Bill Hughes
  * Our Own Work
  * License: MIT
- */
+ *
+ *  */
 
+// /app/components/Header.tsx
 "use client";
-import Link from "next/link";
 
-export default function Header({ user }: { user: any }) {
+import Link from "next/link";
+import { useAuth } from "../components/AuthProvider";
+import ProfileDropdown from "../components/ProfileDropdown";
+import styles from "./Header.module.css";
+
+export default function Header() {
+  const { user } = useAuth();
+
   return (
-    <header className="p-4 bg-gray-100 flex justify-between items-center">
-      <Link href="/">
-        <h1 className="text-xl font-bold">API Doc Assistant</h1>
-      </Link>
-      <nav>
-        {user ? (
-          <span>Welcome, {user.email}</span>
-        ) : (
+    <header className={styles.header}>
+      <div>
+        <Link href="/" className={styles.logo}>
+          API Doc Assistant
+        </Link>
+      </div>
+      <nav className={styles.nav}>
+        {!user ? (
           <>
-            <Link href="/auth/signin" className="mr-4">Sign In</Link>
-            <Link href="/auth/signup">Sign Up</Link>
+            <Link href="/auth/signin" className={styles.navLink}>
+              Sign In
+            </Link>
+            <Link href="/auth/signup" className={styles.navLink}>
+              Sign Up
+            </Link>
           </>
+        ) : (
+          <ProfileDropdown />
         )}
       </nav>
     </header>
