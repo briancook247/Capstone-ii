@@ -1,0 +1,59 @@
+# Capstone II STG-452
+# Authors: Brian Cook, Dima Bondar, James Green
+# Professor: Bill Hughes
+# Our Own Work
+# License: MIT
+
+# Ignore environment configuration files
+backend/.env
+frontend/.env.local
+
+# Ignore Python-related files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+*.env
+
+# Ignore Poetry virtual environment if using poetry
+.poetry/
+
+# Ignore FastAPI and Uvicorn logs
+backend/logs/
+backend/.cache/
+
+# Ignore Node.js dependencies and build output
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.cache/
+
+# Ignore Yarn lock and log files
+yarn.lock
+npm-debug.log*
+pnpm-debug.log*
+
+# Ignore Editor-specific settings
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Ignore coverage reports
+coverage/
+*.coverage
+coverage.xml
+.nyc_output/
+
+# Ignore logs
+logs/
+*.log
+
+# Ignore Supabase CLI generated files (if applicable)
+.supabase/
+
+# Ignore local database dumps (if any)
+db_dump.sql
