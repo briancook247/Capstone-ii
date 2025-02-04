@@ -13,6 +13,10 @@ openai = "^1.61.0"
 python-dotenv = "^1.0.1"
 sqlalchemy = "^2.0.37"
 uvicorn = "^0.34.0"
+pinecone = "^5.4.2"
+requests = "^2.32.3"
+beautifulsoup4 = "^4.13.1"
+numpy = "^2.2.2"
 
 
 [build-system]
