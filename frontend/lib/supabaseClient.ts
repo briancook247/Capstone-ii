@@ -3,6 +3,7 @@
  * Authors: Brian Cook, Dima Bondar, James Green
  * Professor: Bill Hughes
  * Our Own Work
+ * 2/01/2025
  * License: MIT
  *
  * This file initializes the Supabase client using public environment variables.

@@ -1,3 +1,8 @@
+/**
+ * Card component from Shadcn UI.
+ * Imported from the Shadcn UI library.
+ */
+
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';

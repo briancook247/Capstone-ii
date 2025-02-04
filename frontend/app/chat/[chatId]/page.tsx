@@ -3,10 +3,10 @@
  * Authors: Brian Cook, Dima Bondar, James Green
  * Professor: Bill Hughes
  * Our Own Work
+ * 2/01/2025
  * License: MIT
  *
- * This component renders the sign‑up form to collect basic user information.
- */
+ *  */
 
 "use client";
 
