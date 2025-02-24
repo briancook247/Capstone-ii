@@ -9,3 +9,8 @@ License: MIT
 # API Documentation Assistant Backend
 
 This is the FastAPI backend for the API Documentation Assistant project.
+
+
+# to run
+
+# poetry run uvicorn app.test:app --reload

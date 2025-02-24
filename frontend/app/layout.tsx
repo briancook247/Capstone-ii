@@ -6,10 +6,12 @@
  * 2/01/2025
  * License: MIT
  *
- *  */
+ * Updated to include Sonner's Toaster.
+ */
 
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
+import { Toaster } from "sonner";
 
 export default function RootLayout({
   children,
@@ -21,6 +23,7 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           {children}
+          <Toaster position="top-right" />
         </AuthProvider>
       </body>
     </html>
