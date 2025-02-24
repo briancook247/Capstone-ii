@@ -13,7 +13,7 @@ import json
 from typing import List, Optional
 import requests
 from urllib.parse import urljoin, urlparse
-from bs4 import BeautifulSoup  # pip install beautifulsoup4
+from bs4 import BeautifulSoup
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -410,4 +410,4 @@ Return the current status of a document (in_progress, completed, etc.) along wit
 def root():
     return {"message": "Documentation Crawler + Embedding Uploader + Chat API"}
 
-# To run: uvicorn main:app --reload
+# To run: poetry run uvicorn test:app --reload
