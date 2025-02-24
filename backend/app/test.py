@@ -13,7 +13,7 @@ import json
 from typing import List, Optional
 import requests
 from urllib.parse import urljoin, urlparse
-from bs4 import BeautifulSoup  # pip install beautifulsoup4
+from bs4 import BeautifulSoup
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -420,3 +420,5 @@ def get_document_status(doc_id: str):
 @app.get("/")
 def root():
     return {"message": "Documentation Crawler + Embedding Uploader + Chat API"}
+
+# To run: poetry run uvicorn test:app --reload
