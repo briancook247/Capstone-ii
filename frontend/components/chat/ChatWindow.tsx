@@ -1,3 +1,5 @@
+
+// @/components/chat/ChatWindow
 import React from "react";
 
 interface ChatWindowProps {
