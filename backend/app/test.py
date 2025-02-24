@@ -15,7 +15,8 @@ import requests
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup  # pip install beautifulsoup4
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -57,6 +58,17 @@ if INDEX_NAME not in pc.list_indexes().names():
         spec=ServerlessSpec(cloud="aws", region="us-east-1")
     )
 pinecone_index = pc.Index(name=INDEX_NAME)
+
+# --------- FastAPI Setup + CORS Middleware -----------
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust as needed for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ---------------- Helper Functions ----------------
 
@@ -203,7 +215,7 @@ def get_relevant_urls(base_url: str, max_urls: int = 500) -> List[str]:
 # --------- Document Status Updates in the documents table -----------
 def create_document(doc_id: str, base_url: str, user_id: str):
     """
-Insert a new document row into Supabase if it doesn't already exist.
+    Insert a new document row into Supabase if it doesn't already exist.
     """
     data = {
         "id": doc_id,
@@ -218,7 +230,7 @@ Insert a new document row into Supabase if it doesn't already exist.
 
 def initialize_document_status(doc_id: str, total_urls: int):
     """
-Update the document row with initial status values.
+    Update the document row with initial status values.
     """
     data = {
         "status": "in_progress",
@@ -242,10 +254,10 @@ def finish_document_status(doc_id: str):
 # --------- Parallel Scraping + Embedding -----------
 async def scrape_and_embed_docs_parallel(urls: List[str], doc_id: str, max_concurrent: int = 5):
     """
-Crawl multiple URLs in parallel (with a concurrency limit).
-For each URL, scrape the page via crawl4ai, split the text into chunks,
-create embeddings, and upsert them to Pinecone.
-Update the document status as progress is made.
+    Crawl multiple URLs in parallel (with a concurrency limit).
+    For each URL, scrape the page via crawl4ai, split the text into chunks,
+    create embeddings, and upsert them to Pinecone.
+    Update the document status as progress is made.
     """
     print(f"[INFO] Found {len(urls)} URLs to crawl.")
     total_urls = len(urls)
@@ -301,11 +313,18 @@ Update the document status as progress is made.
 
     return {"processed": processed_urls, "failed": failures}
 
+def process_document(urls: List[str], doc_id: str):
+    """
+    Helper function to run the asynchronous crawling process synchronously.
+    This is used to schedule the task in the background.
+    """
+    asyncio.run(scrape_and_embed_docs_parallel(urls, doc_id, max_concurrent=5))
+
 # --------- Query + Generate Answer -----------
 def query_docs(doc_id: str, query: str, top_k: int = 3):
     """
-Embed the query, perform a vector similarity search in Pinecone,
-and return the top_k matching chunks.
+    Embed the query, perform a vector similarity search in Pinecone,
+    and return the top_k matching chunks.
     """
     q_emb = create_embedding(query)
     search_res = pinecone_index.query(
@@ -326,7 +345,7 @@ and return the top_k matching chunks.
 
 def generate_answer(query: str, docs: List[dict]) -> str:
     """
-Generate an answer using a language model based on the provided query and document context.
+    Generate an answer using a language model based on the provided query and document context.
     """
     system_prompt = (
         "You are an AI assistant that answers questions based on provided documentation. "
@@ -348,36 +367,28 @@ Generate an answer using a language model based on the provided query and docume
     )
     return resp.choices[0].message.content
 
-# --------- FastAPI Setup + Endpoints -----------
-app = FastAPI()
-
+# --------- FastAPI Endpoints -----------
 class DocsCrawlRequest(BaseModel):
     base_url: str  # e.g. "https://supabase.com/docs"
     user_id: str   # Supplied from the signed-in user context.
     doc_id: Optional[str] = None
 
 @app.post("/crawl_docs")
-async def crawl_docs_endpoint(req: DocsCrawlRequest):
-    """
-1. If doc_id is not provided, generate a new UUID and insert a new document row (with user_id).
-2. Collect up to 500 URLs from sitemap/manifest or via BFS.
-3. Crawl them in parallel, store embeddings in Pinecone, and update document status.
-    """
+async def crawl_docs_endpoint(req: DocsCrawlRequest, background_tasks: BackgroundTasks):
+    # Generate or use provided doc_id
     doc_id = req.doc_id or str(uuid.uuid4())
-
     if not req.doc_id:
         create_document(doc_id, req.base_url, req.user_id)
-
     urls = get_relevant_urls(req.base_url, max_urls=500)
     if not urls:
         raise HTTPException(status_code=404, detail="No relevant URLs found on the provided base URL.")
-
-    result = await scrape_and_embed_docs_parallel(urls, doc_id, max_concurrent=5)
+    # Start the crawling process in the background
+    background_tasks.add_task(process_document, urls, doc_id)
+    print(f"[INFO] Returning early with doc_id: {doc_id} and {len(urls)} URLs to process.")
     return {
-        "message": f"Processed {result['processed']} pages from the base URL.",
+        "message": "Document processing started",
         "doc_id": doc_id,
-        "urls_found": len(urls),
-        "failed": result["failed"]
+        "urls_found": len(urls)
     }
 
 class ChatRequest(BaseModel):
@@ -396,7 +407,7 @@ def chat_endpoint(req: ChatRequest):
 @app.get("/document_status/{doc_id}")
 def get_document_status(doc_id: str):
     """
-Return the current status of a document (in_progress, completed, etc.) along with totals.
+    Return the current status of a document (in_progress, completed, etc.) along with totals.
     """
     response = supabase.table("documents").select(
         "id, status, total_urls, processed_urls, failed_urls"
@@ -409,5 +420,3 @@ Return the current status of a document (in_progress, completed, etc.) along wit
 @app.get("/")
 def root():
     return {"message": "Documentation Crawler + Embedding Uploader + Chat API"}
-
-# To run: uvicorn main:app --reload
