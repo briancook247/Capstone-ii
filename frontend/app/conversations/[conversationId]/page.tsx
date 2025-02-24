@@ -1,3 +1,11 @@
+/**
+ * Capstone II STG-452
+ * Authors: Brian Cook, Dima Bondar, James Green
+ * Professor: Bill Hughes
+ * Our Own Work
+ * License: MIT
+ */
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -6,7 +14,14 @@ import { toast } from "sonner";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
 import { ChatInput } from "@/components/chat/ChatInput";
+import { HistoryNav } from "@/components/HistoryNav";
 import { supabase } from "@/lib/supabaseClient";
+
+const SUGGESTED_QUESTIONS = [
+  "What is this API framework for?",
+  "What authentication methods does this API support?",
+  "What are the benefits of this framework?"
+];
 
 type Message = {
   role: "user" | "assistant";
@@ -14,11 +29,8 @@ type Message = {
 };
 
 export default function ConversationPage() {
-  // Log the entire params object for debugging.
   const params = useParams();
   console.log("[ConversationPage] Route params:", params);
-  
-  // Check for either "conversationID" or "conversationId" key.
   const conversationID = params.conversationID || params.conversationId;
   console.log("[ConversationPage] Using conversationID:", conversationID);
 
@@ -26,6 +38,7 @@ export default function ConversationPage() {
   const [inputValue, setInputValue] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [docId, setDocId] = useState<string | null>(null);
+  const [justEnabled, setJustEnabled] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Load conversation details to retrieve document id.
@@ -85,6 +98,7 @@ export default function ConversationPage() {
   useEffect(() => {
     if (!docId) return;
     console.log("[ConversationPage] Starting document processing polling for docId:", docId);
+    setIsProcessing(true);
     const intervalId = setInterval(async () => {
       try {
         const res = await fetch(`http://127.0.0.1:8000/document_status/${docId}`);
@@ -127,6 +141,9 @@ export default function ConversationPage() {
             clearInterval(intervalId);
             setTimeout(() => {
               toast.success("Documentation processing completed!", { id: "doc-status" });
+              setIsProcessing(false);
+              setJustEnabled(true);
+              setTimeout(() => setJustEnabled(false), 1000);
             }, 1000);
           }
         } else {
@@ -200,23 +217,68 @@ export default function ConversationPage() {
   };
 
   return (
-    <div className="container mx-auto h-screen flex flex-col">
-      <ChatHeader
-        onNewChat={() => {
-          console.log("[ConversationPage] New chat clicked");
-          window.location.href = "/";
-        }}
-      />
-      <ChatMessages messages={messages} chatEndRef={chatEndRef} />
-      <ChatInput
-        value={inputValue}
-        onChange={(e) => {
-          console.log("[ConversationPage] Input changed to:", e.target.value);
-          setInputValue(e.target.value);
-        }}
-        onSend={handleSendMessage}
-        disabled={isProcessing}
-      />
+    <div className="flex h-screen">
+      {/* Conversation History Sidebar */}
+      <HistoryNav />
+
+      <div className="flex-1 flex flex-col">
+        <ChatHeader
+          onNewChat={() => {
+            console.log("[ConversationPage] New chat clicked");
+            window.location.href = "/";
+          }}
+        />
+        <ChatMessages messages={messages} chatEndRef={chatEndRef} />
+        {/* Conditionally render central suggestions when no user message exists */}
+        {messages.length <= 1 && (
+          <div className="flex flex-col items-center justify-center flex-1">
+            <h3 className="text-2xl font-semibold text-muted-foreground mb-4">
+              Suggested Questions
+            </h3>
+            <div className="flex flex-col gap-4 w-full max-w-md">
+              {SUGGESTED_QUESTIONS.map((question, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    console.log("[ConversationPage] Central suggestion clicked:", question);
+                    setInputValue(question);
+                  }}
+                  className="p-4 rounded-lg border border-border bg-card hover:bg-accent transition-colors duration-200 text-lg"
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Once user has sent a message, show smaller prompt bubbles above the input */}
+        {messages.length > 1 && (
+          <div className="flex gap-2 px-4 py-2 overflow-x-auto">
+            {SUGGESTED_QUESTIONS.map((question, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  console.log("[ConversationPage] Small suggestion clicked:", question);
+                  setInputValue(question);
+                }}
+                className="px-3 py-1 rounded-full border border-border bg-card text-sm hover:bg-accent transition-colors"
+              >
+                {question}
+              </button>
+            ))}
+          </div>
+        )}
+        <ChatInput
+          value={inputValue}
+          onChange={(e) => {
+            console.log("[ConversationPage] Input changed to:", e.target.value);
+            setInputValue(e.target.value);
+          }}
+          onSend={handleSendMessage}
+          disabled={isProcessing}
+          justEnabled={justEnabled}
+        />
+      </div>
     </div>
   );
 }

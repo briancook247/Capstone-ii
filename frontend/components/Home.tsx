@@ -1,3 +1,11 @@
+/**
+ * Capstone II STG-452
+ * Authors: Brian Cook, Dima Bondar, James Green
+ * Professor: Bill Hughes
+ * Our Own Work
+ * License: MIT
+ */
+
 "use client";
 
 import { Search, Link } from "lucide-react";
@@ -5,11 +13,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function Home() {
   const [apiUrl, setApiUrl] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const router = useRouter();
+  const { user } = useAuth(); // Retrieve the logged-in user dynamically
 
   const handleSubmitUrl = async () => {
     console.log("[Home] Submit URL clicked with:", apiUrl);
@@ -19,11 +29,17 @@ export default function Home() {
       return;
     }
 
+    if (!user) {
+      console.error("[Home] No authenticated user.");
+      toast.error("You must be logged in to continue.");
+      return;
+    }
+
     toast.loading("Initializing documentation analysis...", { id: "init" });
     try {
       const payload = {
         base_url: apiUrl.trim(),
-        user_id: "12c4b02f-39b9-4efe-9f8a-9bef2ed35f0b",
+        user_id: user.id, // Send user id to crawl_docs_proxy (if needed for processing)
       };
       console.log("[Home] Payload to crawl_docs_proxy:", payload);
 
@@ -41,7 +57,8 @@ export default function Home() {
         setErrorMsg("");
         toast.dismiss("init");
 
-        // Create a new conversation record in Supabase
+        // Create a new conversation record in Supabase.
+        // Note: The conversations table only accepts document_id and status.
         console.log("[Home] Inserting conversation with docId:", docId);
         const { data: convData, error: convError } = await supabase
           .from("conversations")
@@ -59,7 +76,7 @@ export default function Home() {
         const conversationID = convData[0].id;
         console.log("[Home] New conversation created with ID:", conversationID);
 
-        // Route to the dynamic conversation page
+        // Route to the dynamic conversation page.
         router.push(`/conversations/${conversationID}`);
       } else {
         console.error("[Home] crawl_docs_proxy responded with error status.");
@@ -83,8 +100,7 @@ export default function Home() {
             API Documentation Assistant
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Paste your API documentation link below and start a conversation
-            about your API.
+            Paste your API documentation link below and start a conversation about your API.
           </p>
         </div>
 
